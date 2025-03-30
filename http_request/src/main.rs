@@ -1,13 +1,20 @@
 // Study based: Mods, Struct, Imports, Complex Returns, Cargo Dependencies
+mod utils;
+
+use utils::http_adapter::handle_http_request;
+use tokio;
+
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>>{
+async fn main() {
     
-    let response = reqwest::get("http://httpbin.org/get").await?;
+    let url = "https://jsonplaceholder.typicode.com/posts/1";
 
-    let body = response.text().await?;
-
-    println!("Answer: {}", body);
-
-    Ok(())
+    match handle_http_request(url).await {
+        Ok(adapter) => {
+            println!("URL: {}", adapter.url);
+            println!("Response Content: {}", adapter.content);
+        }
+        Err(e) => println!("Error> {}", e), 
+    }
 }
