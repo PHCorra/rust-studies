@@ -15,6 +15,6 @@ async fn main() {
             println!("URL: {}", adapter.url);
             println!("Response Content: {}", adapter.content);
         }
-        Err(e) => println!("Error> {}", e), 
+        Err(e) => println!("Error: {}", e), 
     }
 }

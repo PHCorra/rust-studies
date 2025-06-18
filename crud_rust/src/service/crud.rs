@@ -1,47 +1,54 @@
 use sqlx::PgPool;
 use async_trait::async_trait;
+use serde::{Serialize, Deserialize};
 
-trait Crud {
-    async fn create(&self, pool: &PgPool, person: Person) -> Result<Person, String>;
-    async fn read($self, pool: &PgPool) -> Result<Person, String>;
-};
+#[async_trait]
+pub trait Crud {
+    async fn create(pool: &PgPool, person: Person) -> Result<Person, String>;
+    async fn read(pool: &PgPool, id: i32) -> Result<Option<Person>, String>;
+}
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-struct Person {
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct Person {
     pub id: i32,
     pub name: String,
     pub email: String,
     pub age: i32,
 }
 
-
+#[async_trait]
 impl Crud for Person {
-    pub async fn create(pool: &PgPool, person: Person) -> Result<Person, String{
-        sqlx::query!("INSERT INTO users (name, email, age) VALUES ($1, $2)", person.name, person.email, person.age)
+    async fn create(pool: &PgPool, person: Person) -> Result<Person, String> {
+        let result = sqlx::query!(
+            "INSERT INTO users (id, name, email, age) VALUES ($1, $2, $3, $4) RETURNING id",
+            person.id, person.name, person.email, person.age
+        )
         .fetch_one(pool)
-        .await?;
-       
+        .await
+        .map_err(|e| e.to_string());
 
         match result {
-            Ok(row) => {
-                (Person {
-                    id: row.id,
-                    name: person.name,
-                    email: person.email,
-                    age: person.age
-                })
-            }
+            Ok(row) => Ok(Person {
+                id: row.id,
+                name: person.name,
+                email: person.email,
+                age: person.age
+            }),
+            Err(e) => Err(e)
         }
     }
     
-    pub async fn read(&self, pool: &PgPool, person: Person) -> Result<Person, String>{
-        let Person = sqlx::query!("SELECT * from users")
-                    .execute(pool)
-                    .await?;
-        Ok(Person);
-    
+    async fn read(pool: &PgPool, id: i32) -> Result<Option<Person>, String> {
+        let person = sqlx::query_as!(
+            Person,
+            "SELECT id, name, email, age FROM users WHERE id = $1",
+            id
+        )
+        .fetch_optional(pool)
+        .await
+        .map_err(|e| e.to_string());
+        
+        Ok(person)
     }
-
-
 }
 
